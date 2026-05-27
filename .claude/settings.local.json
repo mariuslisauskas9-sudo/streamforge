@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Command *)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Start-Sleep -Seconds 6; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -MaximumRedirection 0 -ErrorAction SilentlyContinue; \"Status: $\\($r.StatusCode\\)\" } catch { $e = $_.Exception.Response; if \\($e\\) { \"Status: $\\($e.StatusCode.value__\\) — Location: $\\($e.Headers['Location']\\)\" } else { $_.Exception.Message } })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing; \"Status: $\\($r.StatusCode\\)\"; $r.Content.Substring\\(0, 200\\))",
+      "PowerShell(supabase *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -MaximumRedirection 0 -ErrorAction Stop; \"Status: $\\($r.StatusCode\\)\" } catch { \"Status: $\\($_.Exception.Response.StatusCode.value__\\) Location: $\\($_.Exception.Response.Headers.Location\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop; \"Status: $\\($r.StatusCode\\), Length: $\\($r.Content.Length\\)\" } catch { \"Error: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(Test-Path *)",
+      "PowerShell(winget *)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\('PATH', 'Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH', 'User'\\); & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" --version; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "PowerShell(git *)"
+    ]
+  }
+}

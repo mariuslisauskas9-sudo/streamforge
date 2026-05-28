@@ -19,7 +19,7 @@ import type { ProfileWithLinks, Platform } from '@/types'
 import toast from 'react-hot-toast'
 import { Plus, Trash2 } from 'lucide-react'
 
-const CLIENT_PLATFORMS: Platform[] = ['twitch', 'youtube', 'kick', 'tiktok', 'instagram']
+const CLIENT_PLATFORMS: Platform[] = ['twitch', 'youtube', 'kick', 'tiktok', 'instagram', 'twitter', 'clipper']
 
 interface Props {
   profile: ProfileWithLinks

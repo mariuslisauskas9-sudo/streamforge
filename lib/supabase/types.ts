@@ -2,7 +2,7 @@ export type Role = 'admin' | 'client'
 export type NegotiationStatus = 'pending' | 'contacted' | 'negotiating' | 'rejected'
 export type Priority = 1 | 2 | 3
 export type EventType = 'stream' | 'video' | 'collab' | 'meeting' | 'other'
-export type Platform = 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'instagram' | 'twitter' | 'other'
+export type Platform = 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'instagram' | 'twitter' | 'clipper' | 'other'
 export type UserStatus = 'active' | 'inactive' | 'pending'
 
 export interface Profile {
@@ -45,8 +45,12 @@ export interface Candidate {
   id: string
   name: string
   platform: Platform
+  channel_url: string | null
   audience_size: number | null
+  average_views: number | null
+  proposed_price: number | null
   notes: string | null
+  comments: string | null
   negotiation_status: NegotiationStatus
   priority: Priority
   created_at: string

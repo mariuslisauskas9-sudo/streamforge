@@ -134,7 +134,7 @@ export default async function ClientProfilePage({
         className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to clients
+        Back to creators
       </Link>
 
       {/* Header card */}

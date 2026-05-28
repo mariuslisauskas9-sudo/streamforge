@@ -42,6 +42,7 @@ export const platformLabels: Record<string, string> = {
   tiktok: 'TikTok',
   instagram: 'Instagram',
   twitter: 'X (Twitter)',
+  clipper: 'Clipper',
   other: 'Other',
 }
 

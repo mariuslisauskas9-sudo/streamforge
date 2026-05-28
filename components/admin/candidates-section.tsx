@@ -17,15 +17,19 @@ import {
 import PlatformBadge from '@/components/PlatformBadge'
 import { formatFollowers, negotiationStatusLabels, platformLabels } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { Plus, Pencil, Trash2, Users, Star, UserCheck } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Star, UserCheck, ExternalLink, Eye } from 'lucide-react'
 import type { Platform } from '@/types'
 
 type CandidateRow = {
   id: string
   name: string
   platform: string
+  channel_url: string | null
   audience_size: number | null
+  average_views: number | null
+  proposed_price: number | null
   notes: string | null
+  comments: string | null
   negotiation_status: string
   priority: number
 }
@@ -33,7 +37,10 @@ type CandidateRow = {
 interface FormState {
   name: string
   platform: string
+  channel_url: string
   audience_size: string
+  average_views: string
+  proposed_price: string
   negotiation_status: string
   priority: number
   notes: string
@@ -42,7 +49,10 @@ interface FormState {
 const defaultForm: FormState = {
   name: '',
   platform: 'twitch',
+  channel_url: '',
   audience_size: '',
+  average_views: '',
+  proposed_price: '',
   negotiation_status: 'pending',
   priority: 2,
   notes: '',
@@ -57,13 +67,18 @@ const NEGOTIATION_OPTIONS = [
   { value: 'rejected',    label: 'Rejected' },
 ]
 
-const CANDIDATE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'instagram', 'twitter', 'other']
+const CANDIDATE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'instagram', 'twitter', 'clipper', 'other']
 
 const NEG_COLORS: Record<string, { bg: string; color: string }> = {
   pending:     { bg: 'rgba(152,152,176,0.15)', color: 'var(--color-text-muted)' },
   contacted:   { bg: 'rgba(52,170,255,0.15)',  color: '#34aaff' },
   negotiating: { bg: 'rgba(255,181,52,0.15)',  color: 'var(--color-amber)' },
   rejected:    { bg: 'rgba(255,107,107,0.15)', color: '#ff6b6b' },
+}
+
+function formatPrice(n: number): string {
+  if (n >= 1_000) return `€${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`
+  return `€${n % 1 === 0 ? n.toFixed(0) : n.toFixed(2)}`
 }
 
 function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
@@ -105,14 +120,12 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
   const router = useRouter()
   const [candidates, setCandidates] = useState<CandidateRow[]>(initialCandidates)
 
-  // Edit/add modal
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(defaultForm)
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
-  // Hire modal
   const [hiringCandidate, setHiringCandidate] = useState<CandidateRow | null>(null)
   const [hireEmail, setHireEmail] = useState('')
   const [hireLoading, setHireLoading] = useState(false)
@@ -128,7 +141,10 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
     setForm({
       name: c.name,
       platform: c.platform,
+      channel_url: c.channel_url ?? '',
       audience_size: c.audience_size?.toString() ?? '',
+      average_views: c.average_views?.toString() ?? '',
+      proposed_price: c.proposed_price?.toString() ?? '',
       negotiation_status: c.negotiation_status,
       priority: c.priority,
       notes: c.notes ?? '',
@@ -148,7 +164,10 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
     const payload = {
       name: form.name.trim(),
       platform: form.platform,
+      channel_url: form.channel_url.trim() || null,
       audience_size: form.audience_size ? parseInt(form.audience_size) : null,
+      average_views: form.average_views ? parseInt(form.average_views) : null,
+      proposed_price: form.proposed_price ? parseFloat(form.proposed_price) : null,
       negotiation_status: form.negotiation_status,
       priority: form.priority,
       notes: form.notes.trim() || null,
@@ -161,10 +180,8 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
       )
       setModalOpen(false)
 
-      console.log('[candidates] calling update, id:', editingId, 'payload:', JSON.stringify(payload))
       const { data, error } = await supabase
         .from('candidates').update(payload).eq('id', editingId).select().single()
-      console.log('[candidates] update response — data:', JSON.stringify(data), '| error:', JSON.stringify(error), error?.message, error?.code)
 
       if (error || !data) {
         setCandidates(snapshot)
@@ -178,17 +195,14 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
       const tempId = `__temp__${Date.now()}`
       const optimistic: CandidateRow = {
         id: tempId,
+        comments: null,
         ...payload,
-        audience_size: payload.audience_size ?? null,
-        notes: payload.notes ?? null,
       }
       setCandidates((prev) => [optimistic, ...prev])
       setModalOpen(false)
 
-      console.log('[candidates] calling insert, payload:', JSON.stringify(payload))
       const { data, error } = await supabase
         .from('candidates').insert(payload).select().single()
-      console.log('[candidates] insert response — data:', JSON.stringify(data), '| error:', JSON.stringify(error), error?.message, error?.code)
 
       if (error || !data) {
         setCandidates((prev) => prev.filter((c) => c.id !== tempId))
@@ -222,7 +236,6 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
 
     setHireLoading(true)
 
-    // Optimistic: remove from list and close modal immediately
     const snapshot = candidates
     setCandidates((prev) => prev.filter((c) => c.id !== candidate.id))
     setHiringCandidate(null)
@@ -238,7 +251,6 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
     setHireLoading(false)
 
     if ('error' in result) {
-      // Rollback: restore candidate and re-open modal
       setCandidates(snapshot)
       setHiringCandidate(candidate)
       setHireEmail(email)
@@ -265,18 +277,49 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
               key={c.id}
               className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-5 flex flex-col gap-3 hover:border-[var(--color-border-hover)] transition-colors"
             >
+              {/* Name + link + platform | stars */}
               <div className="flex items-start gap-2 justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[var(--color-text-primary)] truncate">{c.name}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="font-semibold text-[var(--color-text-primary)] truncate">{c.name}</p>
+                    {c.channel_url && (
+                      <a
+                        href={c.channel_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+                        title="View channel"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                   <PlatformBadge platform={c.platform as Platform} className="mt-1.5" />
                 </div>
                 <StarRating value={c.priority} />
               </div>
 
-              {c.audience_size != null && (
-                <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
-                  <Users className="w-3.5 h-3.5 shrink-0" />
-                  {formatFollowers(c.audience_size)} followers
+              {/* Stats row */}
+              {(c.audience_size != null || c.average_views != null || c.proposed_price != null) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {c.audience_size != null && (
+                    <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+                      <Users className="w-3 h-3 shrink-0" />
+                      {formatFollowers(c.audience_size)}
+                    </div>
+                  )}
+                  {c.average_views != null && (
+                    <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+                      <Eye className="w-3 h-3 shrink-0" />
+                      {formatFollowers(c.average_views)} avg
+                    </div>
+                  )}
+                  {c.proposed_price != null && (
+                    <div className="flex items-center gap-1 text-xs font-semibold text-[var(--color-text-primary)]">
+                      {formatPrice(c.proposed_price)}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -335,7 +378,8 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
             <DialogTitle>{editingId ? 'Edit candidate' : 'Add candidate'}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 max-h-[65vh] overflow-y-auto pr-1">
+            {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label>Name</Label>
               <Input
@@ -345,6 +389,7 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
               />
             </div>
 
+            {/* Platform + Audience */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Platform</Label>
@@ -357,9 +402,8 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="flex flex-col gap-1.5">
-                <Label>Audience size</Label>
+                <Label>Followers</Label>
                 <Input
                   type="number"
                   placeholder="e.g. 50000"
@@ -369,6 +413,46 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
               </div>
             </div>
 
+            {/* Channel URL */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Channel URL</Label>
+              <Input
+                type="url"
+                placeholder="https://twitch.tv/username"
+                value={form.channel_url}
+                onChange={(e) => set('channel_url', e.target.value)}
+              />
+            </div>
+
+            {/* Avg views + Proposed price */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Avg views</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={form.average_views}
+                  onChange={(e) => set('average_views', e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Proposed price</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-muted)] pointer-events-none select-none">
+                    €
+                  </span>
+                  <Input
+                    type="number"
+                    className="pl-7"
+                    placeholder="0"
+                    value={form.proposed_price}
+                    onChange={(e) => set('proposed_price', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Status + Priority */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Status</Label>
@@ -381,7 +465,6 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <Label>Priority</Label>
                 <div className="flex items-center gap-2 h-9">
@@ -393,8 +476,9 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
               </div>
             </div>
 
+            {/* Notes */}
             <div className="flex flex-col gap-1.5">
-              <Label>Notes</Label>
+              <Label>Notes / Comments</Label>
               <Textarea
                 placeholder="Notes about this creator..."
                 value={form.notes}
@@ -425,7 +509,6 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
 
           {hiringCandidate && (
             <>
-              {/* Candidate summary */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
                 <div className="w-9 h-9 rounded-lg bg-[var(--color-bg-hover)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
                   <UserCheck className="w-4 h-4 text-[var(--color-green)]" />
@@ -438,6 +521,8 @@ export function CandidatesSection({ initialCandidates }: { initialCandidates: Ca
                     {platformLabels[hiringCandidate.platform] ?? hiringCandidate.platform}
                     {hiringCandidate.audience_size != null &&
                       ` · ${formatFollowers(hiringCandidate.audience_size)} followers`}
+                    {hiringCandidate.proposed_price != null &&
+                      ` · ${formatPrice(hiringCandidate.proposed_price)}`}
                   </p>
                 </div>
                 <StarRating value={hiringCandidate.priority} />

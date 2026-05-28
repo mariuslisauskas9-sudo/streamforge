@@ -12,7 +12,10 @@
       "PowerShell(Test-Path *)",
       "PowerShell(winget *)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\('PATH', 'Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH', 'User'\\); & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" --version; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\('PATH','Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH','User'\\); cd C:\\\\Users\\\\PC\\\\streamforge; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" check-ignore -v .env.local; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\('PATH','Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH','User'\\); cd C:\\\\Users\\\\PC\\\\streamforge; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" config user.email 2>&1; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" config user.name 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\('PATH','Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH','User'\\); cd C:\\\\Users\\\\PC\\\\streamforge; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" config --global user.email \"mariuslisauskas9@gmail.com\"; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" config --global user.name \"Marius\"; & \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" commit -m \"Initial commit\")"
     ]
   }
 }

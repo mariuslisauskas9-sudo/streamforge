@@ -27,8 +27,12 @@ type CandidateRow = {
   id: string
   name: string
   platform: string
+  channel_url: string | null
   audience_size: number | null
+  average_views: number | null
+  proposed_price: number | null
   notes: string | null
+  comments: string | null
   negotiation_status: string
   priority: number
 }
@@ -41,7 +45,28 @@ type NextEvent = {
   scheduled_at: string
 }
 
-export default async function ClientsPage() {
+const PLATFORM_FILTER_MAP: Record<string, string[]> = {
+  streamers:    ['twitch', 'kick'],
+  youtubers:    ['youtube'],
+  instagramers: ['instagram'],
+  clippers:     ['clipper'],
+  'x-creators': ['twitter'],
+}
+
+const SECTION_TITLE_MAP: Record<string, string> = {
+  streamers:    'Streamers',
+  youtubers:    'YouTubers',
+  instagramers: 'Instagramers',
+  clippers:     'Clippers',
+  'x-creators': 'X Creators',
+}
+
+export default async function CreatorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ platform?: string }>
+}) {
+  const { platform } = await searchParams
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -62,8 +87,21 @@ export default async function ClientsPage() {
       .order('scheduled_at', { ascending: true }),
   ])
 
-  const clients = (clientsRaw ?? []) as ClientRow[]
-  const candidates = (candidatesRaw ?? []) as CandidateRow[]
+  const allClients = (clientsRaw ?? []) as ClientRow[]
+  const allCandidates = (candidatesRaw ?? []) as CandidateRow[]
+
+  const platformFilter = platform ? (PLATFORM_FILTER_MAP[platform] ?? null) : null
+  const sectionTitle = platform ? (SECTION_TITLE_MAP[platform] ?? 'Creators') : 'Creators'
+
+  const clients = platformFilter
+    ? allClients.filter((c) =>
+        c.platform_links.some((pl) => platformFilter.includes(pl.platform))
+      )
+    : allClients
+
+  const candidates = platformFilter
+    ? allCandidates.filter((c) => platformFilter.includes(c.platform))
+    : allCandidates
 
   const nextEventMap = new Map<string, NextEvent>()
   for (const ev of (eventsRaw ?? []) as NextEvent[]) {
@@ -74,7 +112,9 @@ export default async function ClientsPage() {
     <div className="p-6 max-w-6xl mx-auto animate-in">
       <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-[var(--color-text-primary)]">Clients</h1>
+          <h1 className="text-2xl font-heading font-bold text-[var(--color-text-primary)]">
+            {sectionTitle}
+          </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
             {clients.length} hired · {candidates.length} candidates
           </p>
@@ -93,7 +133,7 @@ export default async function ClientsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Hired clients */}
+        {/* Hired creators */}
         <TabsContent value="hired">
           {clients.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -202,9 +242,11 @@ export default async function ClientsPage() {
               <div className="w-12 h-12 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] flex items-center justify-center">
                 <Users className="w-5 h-5 text-[var(--color-text-muted)]" />
               </div>
-              <p className="text-sm font-medium text-[var(--color-text-primary)]">No clients</p>
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">No creators</p>
               <p className="text-xs text-[var(--color-text-muted)]">
-                You don't have any hired clients yet.
+                {platformFilter
+                  ? `No hired creators for this platform yet.`
+                  : `You don't have any hired creators yet.`}
               </p>
             </div>
           )}
@@ -212,7 +254,7 @@ export default async function ClientsPage() {
 
         {/* Candidates */}
         <TabsContent value="candidates">
-          <CandidatesSection initialCandidates={candidates} />
+          <CandidatesSection key={platform ?? 'all'} initialCandidates={candidates} />
         </TabsContent>
       </Tabs>
     </div>

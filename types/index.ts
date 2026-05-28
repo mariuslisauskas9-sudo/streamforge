@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'client'
 export type UserStatus = 'active' | 'idle' | 'blocked'
-export type Platform = 'twitch' | 'youtube' | 'kick' | 'instagram' | 'tiktok'
+export type Platform = 'twitch' | 'youtube' | 'kick' | 'instagram' | 'tiktok' | 'twitter' | 'clipper'
 export type EventType = 'stream' | 'youtube_video'
 export type NegotiationStatus = 'contacted' | 'negotiating' | 'pending' | 'rejected'
 
@@ -42,8 +42,12 @@ export interface Candidate {
   id: string
   name: string | null
   platform: string | null
+  channel_url: string | null
   audience_size: number | null
+  average_views: number | null
+  proposed_price: number | null
   notes: string | null
+  comments: string | null
   negotiation_status: NegotiationStatus | null
   priority: number | null
   created_at: string

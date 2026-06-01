@@ -9,7 +9,7 @@ type CredentialRow = {
   username: string
   password: string
   created_at: string
-  profiles: { full_name: string | null } | null
+  profiles: { full_name: string | null }[]
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -84,7 +84,7 @@ export function CreatorCredentials({ credentials }: { credentials: CredentialRow
                 <tr key={c.id} className="hover:bg-[var(--color-bg-hover)] transition-colors">
                   <td className="px-6 py-3">
                     <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                      {c.profiles?.full_name ?? c.username}
+                      {c.profiles?.[0]?.full_name ?? c.username}
                     </span>
                   </td>
                   <td className="px-4 py-3">

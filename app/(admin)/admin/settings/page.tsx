@@ -18,7 +18,7 @@ type CredentialRow = {
   username: string
   password: string
   created_at: string
-  profiles: { full_name: string | null } | null
+  profiles: { full_name: string | null }[]
 }
 
 export default async function SettingsPage() {

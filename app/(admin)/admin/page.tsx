@@ -201,7 +201,7 @@ export default async function AdminDashboard() {
 
       {/* Row 1 — This month */}
       <div className="mb-8">
-        <SectionLabel>{monthLabel} — this month</SectionLabel>
+        <SectionLabel>{`${monthLabel} — this month`}</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard
             icon={Radio}

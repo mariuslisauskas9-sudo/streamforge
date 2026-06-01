@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { AddAdminModal } from './add-admin-modal'
 import { AdminList } from './admin-list'
+import { CreatorCredentials } from './creator-credentials'
 import { ShieldCheck } from 'lucide-react'
 
 type AdminRow = {
@@ -12,19 +13,32 @@ type AdminRow = {
   created_at: string
 }
 
+type CredentialRow = {
+  id: string
+  username: string
+  password: string
+  created_at: string
+  profiles: { full_name: string | null } | null
+}
+
 export default async function SettingsPage() {
   const supabase = await createClient()
 
-  const [{ data: { user } }, { data: adminsRaw }] = await Promise.all([
+  const [{ data: { user } }, { data: adminsRaw }, { data: credentialsRaw }] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from('profiles')
       .select('id, full_name, username, avatar_url, email, created_at')
       .eq('role', 'admin')
       .order('created_at', { ascending: true }),
+    supabase
+      .from('creator_credentials')
+      .select('id, username, password, created_at, profiles(full_name)')
+      .order('created_at', { ascending: false }),
   ])
 
   const admins = (adminsRaw ?? []) as AdminRow[]
+  const credentials = (credentialsRaw ?? []) as CredentialRow[]
   const currentUserId = user?.id ?? ''
 
   return (
@@ -54,6 +68,8 @@ export default async function SettingsPage() {
 
         <AdminList initialAdmins={admins} currentUserId={currentUserId} />
       </div>
+
+      <CreatorCredentials credentials={credentials} />
     </div>
   )
 }

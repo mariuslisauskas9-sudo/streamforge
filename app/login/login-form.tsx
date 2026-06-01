@@ -106,10 +106,10 @@ export function LoginForm({ initialError }: Props) {
           <form method="POST" action="/api/login" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input
               name="email"
-              type="email"
-              placeholder="Email"
+              type="text"
+              placeholder="Username"
               required
-              autoComplete="email"
+              autoComplete="username"
               style={inputStyle}
             />
             <input

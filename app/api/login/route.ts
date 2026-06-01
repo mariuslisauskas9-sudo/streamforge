@@ -5,12 +5,13 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   const formData = await request.formData()
-  const email = String(formData.get('email') ?? '').trim()
+  const raw = String(formData.get('email') ?? '').trim()
+  const email = raw.includes('@') ? raw : `${raw}@streamforge.internal`
   const password = String(formData.get('password') ?? '')
 
-  if (!email || !password) {
+  if (!raw || !password) {
     return NextResponse.redirect(
-      new URL('/login?error=' + encodeURIComponent('Please enter your email and password'), request.url),
+      new URL('/login?error=' + encodeURIComponent('Please enter your username and password'), request.url),
       303
     )
   }

@@ -34,6 +34,7 @@ export async function createUser(data: {
   password: string
   role: 'admin' | 'client'
   platform: string
+  username?: string
 }): Promise<{ success: true } | { error: string }> {
   const admin = await verifyAdmin()
   if (!admin) return { error: 'Unauthorized' }
@@ -51,6 +52,7 @@ export async function createUser(data: {
     email: data.email,
     role: data.role,
     status: 'active',
+    ...(data.username ? { username: data.username } : {}),
   })
   if (profileError) {
     await admin.auth.admin.deleteUser(created.user.id)
@@ -62,6 +64,112 @@ export async function createUser(data: {
       profile_id: created.user.id,
       platform: data.platform,
       url: '',
+    })
+  }
+
+  return { success: true }
+}
+
+export async function createCreator(data: {
+  fullName: string
+  username: string
+  password: string
+  platform: string
+  channelUrl: string
+  followers: string
+  contact: string
+  bio: string
+}): Promise<{ success: true } | { error: string }> {
+  const admin = await verifyAdmin()
+  if (!admin) return { error: 'Unauthorized' }
+
+  const slug = data.username.trim().toLowerCase()
+  if (!slug) return { error: 'Username is required' }
+
+  const email = `${slug}@streamforge.internal`
+  const followersNum = data.followers ? parseInt(data.followers, 10) : null
+
+  const { data: created, error: authError } = await admin.auth.admin.createUser({
+    email,
+    password: data.password,
+    email_confirm: true,
+  })
+  if (authError || !created.user) return { error: authError?.message ?? 'Failed to create user' }
+
+  const { error: profileError } = await admin.from('profiles').upsert({
+    id: created.user.id,
+    full_name: data.fullName || null,
+    username: slug,
+    email,
+    role: 'client',
+    status: 'active',
+    ...(data.contact ? { discord: data.contact } : {}),
+    ...(data.bio ? { bio: data.bio } : {}),
+  })
+  if (profileError) {
+    await admin.auth.admin.deleteUser(created.user.id)
+    return { error: profileError.message }
+  }
+
+  if (data.platform) {
+    await admin.from('platform_links').insert({
+      profile_id: created.user.id,
+      platform: data.platform,
+      url: data.channelUrl || '',
+      ...(followersNum !== null && !isNaN(followersNum) ? { followers_count: followersNum } : {}),
+    })
+  }
+
+  await admin.from('creator_credentials').insert({
+    profile_id: created.user.id,
+    username: slug,
+    password: data.password,
+  })
+
+  return { success: true }
+}
+
+export async function inviteCreator(data: {
+  fullName: string
+  email: string
+  platform: string
+  username: string
+  channelUrl: string
+  followersCount: string
+  details: string
+}): Promise<{ success: true } | { error: string }> {
+  const admin = await verifyAdmin()
+  if (!admin) return { error: 'Unauthorized' }
+
+  const { data: invited, error: authError } = await admin.auth.admin.inviteUserByEmail(
+    data.email,
+    { data: { full_name: data.fullName || undefined } },
+  )
+  if (authError || !invited.user) return { error: authError?.message ?? 'Failed to send invite' }
+
+  const userId = invited.user.id
+  const followers = data.followersCount ? parseInt(data.followersCount, 10) : null
+
+  const { error: profileError } = await admin.from('profiles').upsert({
+    id: userId,
+    full_name: data.fullName || null,
+    email: data.email,
+    role: 'client',
+    status: 'active',
+    ...(data.username ? { username: data.username } : {}),
+    ...(data.details ? { bio: data.details } : {}),
+  })
+  if (profileError) {
+    await admin.auth.admin.deleteUser(userId)
+    return { error: profileError.message }
+  }
+
+  if (data.platform) {
+    await admin.from('platform_links').insert({
+      profile_id: userId,
+      platform: data.platform,
+      url: data.channelUrl || '',
+      ...(followers !== null && !isNaN(followers) ? { followers_count: followers } : {}),
     })
   }
 
@@ -118,6 +226,19 @@ export async function hireCandidate(data: {
     await admin.auth.admin.deleteUser(userId)
     return { error: deleteError.message }
   }
+
+  return { success: true }
+}
+
+export async function deleteCreator(
+  userId: string,
+): Promise<{ success: true } | { error: string }> {
+  const admin = await verifyAdmin()
+  if (!admin) return { error: 'Unauthorized' }
+
+  await admin.from('profiles').delete().eq('id', userId)
+  const { error } = await admin.auth.admin.deleteUser(userId)
+  if (error) return { error: error.message }
 
   return { success: true }
 }

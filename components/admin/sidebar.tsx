@@ -1,27 +1,29 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  Users,
   CalendarDays,
   Settings,
   LogOut,
   Zap,
-  ChevronDown,
+  Tv2,
+  PlayCircle,
+  Camera,
+  Scissors,
+  XCircle,
 } from 'lucide-react'
 
-const CREATOR_SUB_ITEMS = [
-  { label: 'All Creators', platform: null },
-  { label: 'Streamers', platform: 'streamers' },
-  { label: 'YouTubers', platform: 'youtubers' },
-  { label: 'Instagramers', platform: 'instagramers' },
-  { label: 'Clippers', platform: 'clippers' },
-  { label: 'X Creators', platform: 'x-creators' },
+const CREATOR_ITEMS = [
+  { label: 'Streamers', platform: 'streamers', icon: Tv2 },
+  { label: 'YouTubers', platform: 'youtubers', icon: PlayCircle },
+  { label: 'Instagramers', platform: 'instagramers', icon: Camera },
+  { label: 'Clippers', platform: 'clippers', icon: Scissors },
+  { label: 'X Creators', platform: 'x-creators', icon: XCircle },
 ]
 
 function SidebarNav() {
@@ -29,11 +31,6 @@ function SidebarNav() {
   const searchParams = useSearchParams()
   const currentPlatform = searchParams.get('platform')
   const onCreators = pathname.startsWith('/admin/clients')
-  const [creatorsOpen, setCreatorsOpen] = useState(onCreators)
-
-  useEffect(() => {
-    if (onCreators) setCreatorsOpen(true)
-  }, [onCreators])
 
   return (
     <nav className="flex-1 px-3 flex flex-col gap-1 overflow-y-auto py-1">
@@ -50,52 +47,24 @@ function SidebarNav() {
         Dashboard
       </Link>
 
-      <div>
-        <button
-          type="button"
-          onClick={() => setCreatorsOpen((o) => !o)}
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-            onCreators
-              ? 'text-[var(--color-accent)] bg-[rgba(124,106,255,0.08)]'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]'
-          )}
-        >
-          <Users className="w-4 h-4 shrink-0" />
-          <span className="flex-1 text-left">Creators</span>
-          <ChevronDown
+      {CREATOR_ITEMS.map(({ label, platform, icon: Icon }) => {
+        const active = onCreators && currentPlatform === platform
+        return (
+          <Link
+            key={platform}
+            href={`/admin/clients?platform=${platform}`}
             className={cn(
-              'w-3.5 h-3.5 transition-transform duration-200',
-              creatorsOpen && 'rotate-180'
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+              active
+                ? 'bg-[var(--color-accent)] text-white shadow-[0_0_15px_rgba(124,106,255,0.25)]'
+                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]'
             )}
-          />
-        </button>
-
-        {creatorsOpen && (
-          <div className="ml-4 mt-1 mb-1 flex flex-col gap-0.5 border-l border-[var(--color-border)] pl-3">
-            {CREATOR_SUB_ITEMS.map(({ label, platform }) => {
-              const href = platform ? `/admin/clients?platform=${platform}` : '/admin/clients'
-              const active = onCreators && (
-                platform ? currentPlatform === platform : currentPlatform === null
-              )
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150',
-                    active
-                      ? 'text-[var(--color-accent)] bg-[rgba(124,106,255,0.12)]'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]'
-                  )}
-                >
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </div>
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            {label}
+          </Link>
+        )
+      })}
 
       <Link
         href="/admin/calendar"

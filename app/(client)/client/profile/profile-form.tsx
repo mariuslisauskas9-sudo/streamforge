@@ -9,10 +9,34 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { getInitials, platformLabels, formatFollowers } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
 import type { ProfileWithLinks } from '@/types'
 import toast from 'react-hot-toast'
+
+const TIMEZONES: { value: string; label: string }[] = [
+  { value: 'UTC', label: 'UTC' },
+  { value: 'America/New_York', label: 'US/Eastern — New York' },
+  { value: 'America/Chicago', label: 'US/Central — Chicago' },
+  { value: 'America/Denver', label: 'US/Mountain — Denver' },
+  { value: 'America/Los_Angeles', label: 'US/Pacific — Los Angeles' },
+  { value: 'America/Sao_Paulo', label: 'Brazil — São Paulo' },
+  { value: 'Europe/London', label: 'Europe/London' },
+  { value: 'Europe/Vilnius', label: 'Europe/Vilnius' },
+  { value: 'Europe/Berlin', label: 'Europe/Berlin' },
+  { value: 'Europe/Paris', label: 'Europe/Paris' },
+  { value: 'Europe/Moscow', label: 'Europe/Moscow' },
+  { value: 'Asia/Dubai', label: 'Asia/Dubai' },
+  { value: 'Asia/Kolkata', label: 'Asia/Kolkata — India' },
+  { value: 'Asia/Bangkok', label: 'Asia/Bangkok' },
+  { value: 'Asia/Shanghai', label: 'Asia/Shanghai — China' },
+  { value: 'Asia/Tokyo', label: 'Asia/Tokyo' },
+  { value: 'Australia/Sydney', label: 'Australia/Sydney' },
+  { value: 'Pacific/Auckland', label: 'Pacific/Auckland' },
+]
 
 interface Props {
   profile: ProfileWithLinks
@@ -26,6 +50,7 @@ export function ProfileForm({ profile }: Props) {
     username: profile.username ?? '',
     bio: profile.bio ?? '',
     discord: profile.discord ?? '',
+    timezone: profile.timezone ?? 'UTC',
   })
 
   function update(field: string, value: string) {
@@ -43,6 +68,7 @@ export function ProfileForm({ profile }: Props) {
         username: formData.username || null,
         bio: formData.bio || null,
         discord: formData.discord || null,
+        timezone: formData.timezone || 'UTC',
       })
       .eq('id', profile.id)
 
@@ -130,6 +156,22 @@ export function ProfileForm({ profile }: Props) {
                 onChange={(e) => update('discord', e.target.value)}
                 placeholder="username"
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>Timezone</Label>
+              <Select value={formData.timezone} onValueChange={(v) => update('timezone', v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

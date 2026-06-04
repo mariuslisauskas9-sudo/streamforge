@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { eventTypeColors, eventTypeLabels } from '@/lib/utils'
+import { TimeSelect } from '@/components/ui/time-select'
 import toast from 'react-hot-toast'
 import type { StreamEvent, EventType } from '@/types'
 
@@ -226,12 +227,15 @@ export function ClientCalendarView({ events, profileId }: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="ev-date">Date & time</Label>
+                <Label htmlFor="ev-date">Date</Label>
                 <Input
                   id="ev-date"
-                  type="datetime-local"
-                  value={form.scheduled_at}
-                  onChange={(e) => setForm((f) => ({ ...f, scheduled_at: e.target.value }))}
+                  type="date"
+                  value={form.scheduled_at.slice(0, 10)}
+                  onChange={(e) => setForm((f) => ({
+                    ...f,
+                    scheduled_at: `${e.target.value}T${f.scheduled_at.slice(11, 16) || '12:00'}`,
+                  }))}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -246,6 +250,17 @@ export function ClientCalendarView({ events, profileId }: Props) {
                   onChange={(e) => setForm((f) => ({ ...f, duration_hours: e.target.value }))}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>Time</Label>
+              <TimeSelect
+                value={form.scheduled_at.slice(11, 16) || '12:00'}
+                onChange={(t) => setForm((f) => ({
+                  ...f,
+                  scheduled_at: `${f.scheduled_at.slice(0, 10) || new Date().toISOString().slice(0, 10)}T${t}`,
+                }))}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -278,7 +293,7 @@ export function ClientCalendarView({ events, profileId }: Props) {
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={loading || !form.title.trim() || !form.scheduled_at}
+              disabled={loading || !form.title.trim() || !form.scheduled_at.slice(0, 10)}
             >
               {loading ? 'Saving...' : 'Save'}
             </Button>

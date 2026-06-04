@@ -8,12 +8,13 @@ export default async function AdminCalendarPage({
   searchParams: Promise<{ client?: string }>
 }) {
   const sp = await searchParams
+  console.log('[calendar page] client param:', sp.client)
   const supabase = await createClient()
 
   const [{ data: events }, { data: clients }] = await Promise.all([
     supabase
       .from('events')
-      .select('id, title, type, scheduled_at, duration_minutes, notes, profile_id, profiles(id, full_name, username)')
+      .select('id, title, type, scheduled_at, duration_minutes, notes, profile_id, profiles(id, full_name, username, timezone)')
       .order('scheduled_at', { ascending: true }),
     supabase
       .from('profiles')

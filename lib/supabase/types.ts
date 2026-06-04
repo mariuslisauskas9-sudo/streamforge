@@ -14,6 +14,7 @@ export interface Profile {
   bio: string | null
   email: string | null
   discord: string | null
+  timezone: string | null
   status: UserStatus
   client_since: string | null
   created_at: string

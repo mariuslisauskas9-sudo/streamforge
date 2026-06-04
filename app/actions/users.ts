@@ -243,6 +243,51 @@ export async function deleteCreator(
   return { success: true }
 }
 
+export async function createSystemAccount(): Promise<
+  { success: true; created: boolean } | { error: string }
+> {
+  const admin = await verifyAdmin()
+  if (!admin) return { error: 'Unauthorized' }
+
+  // Idempotent — bail out if the profile already exists
+  const { data: existing } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('username', 'x-posts')
+    .maybeSingle()
+  if (existing) return { success: true, created: false }
+
+  const { data: created, error: authError } = await admin.auth.admin.createUser({
+    email: 'x-posts@streamforge.internal',
+    password: crypto.randomUUID(),
+    email_confirm: true,
+  })
+  if (authError || !created.user) return { error: authError?.message ?? 'Failed to create user' }
+
+  const userId = created.user.id
+
+  const { error: profileError } = await admin.from('profiles').upsert({
+    id: userId,
+    email: 'x-posts@streamforge.internal',
+    role: 'client',
+    full_name: 'X Posts Schedule',
+    username: 'x-posts',
+    status: 'active',
+  })
+  if (profileError) {
+    await admin.auth.admin.deleteUser(userId)
+    return { error: profileError.message }
+  }
+
+  await admin.from('platform_links').insert({
+    profile_id: userId,
+    platform: 'twitter',
+    url: '',
+  })
+
+  return { success: true, created: true }
+}
+
 export async function deleteAdmin(
   userId: string,
 ): Promise<{ success: true } | { error: string }> {

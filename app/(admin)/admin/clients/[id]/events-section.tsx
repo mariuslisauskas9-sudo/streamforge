@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import { formatDateTime, eventTypeColors, eventTypeLabels } from '@/lib/utils'
+import { TimeSelect } from '@/components/ui/time-select'
 import { Plus, Pencil, Trash2, CalendarDays } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -286,11 +287,11 @@ export function EventsSection({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Date & time</Label>
+                <Label>Date</Label>
                 <Input
-                  type="datetime-local"
-                  value={form.scheduled_at}
-                  onChange={(e) => set('scheduled_at', e.target.value)}
+                  type="date"
+                  value={form.scheduled_at.slice(0, 10)}
+                  onChange={(e) => set('scheduled_at', `${e.target.value}T${form.scheduled_at.slice(11, 16) || '12:00'}`)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -304,6 +305,14 @@ export function EventsSection({
                   onChange={(e) => set('duration_hours', e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>Time</Label>
+              <TimeSelect
+                value={form.scheduled_at.slice(11, 16) || '12:00'}
+                onChange={(t) => set('scheduled_at', `${form.scheduled_at.slice(0, 10) || new Date().toISOString().slice(0, 10)}T${t}`)}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -337,7 +346,7 @@ export function EventsSection({
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={!form.title.trim() || !form.scheduled_at}
+              disabled={!form.title.trim() || !form.scheduled_at.slice(0, 10)}
             >
               {editingId ? 'Update' : 'Add event'}
             </Button>

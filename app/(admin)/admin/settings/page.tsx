@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { AddAdminModal } from './add-admin-modal'
 import { AdminList } from './admin-list'
 import { CreatorCredentials } from './creator-credentials'
+import { SystemAccounts } from './system-accounts'
 import { ShieldCheck } from 'lucide-react'
 
 type AdminRow = {
@@ -24,7 +25,12 @@ type CredentialRow = {
 export default async function SettingsPage() {
   const supabase = await createClient()
 
-  const [{ data: { user } }, { data: adminsRaw }, { data: credentialsRaw }] = await Promise.all([
+  const [
+    { data: { user } },
+    { data: adminsRaw },
+    { data: credentialsRaw },
+    { data: xPostsProfile },
+  ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from('profiles')
@@ -35,6 +41,11 @@ export default async function SettingsPage() {
       .from('creator_credentials')
       .select('id, username, password, created_at, profiles(full_name)')
       .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', 'x-posts')
+      .maybeSingle(),
   ])
 
   const admins = (adminsRaw ?? []) as AdminRow[]
@@ -70,6 +81,7 @@ export default async function SettingsPage() {
       </div>
 
       <CreatorCredentials credentials={credentials} />
+      <SystemAccounts initialExists={!!xPostsProfile} />
     </div>
   )
 }

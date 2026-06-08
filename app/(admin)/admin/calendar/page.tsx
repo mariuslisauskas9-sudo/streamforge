@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { AdminCalendarView } from './calendar-view'
-import type { ProfileWithLinks } from '@/types'
 
 export default async function AdminCalendarPage({
   searchParams,
@@ -8,19 +7,12 @@ export default async function AdminCalendarPage({
   searchParams: Promise<{ client?: string }>
 }) {
   const sp = await searchParams
-  console.log('[calendar page] client param:', sp.client)
   const supabase = await createClient()
 
-  const [{ data: events }, { data: clients }] = await Promise.all([
-    supabase
-      .from('events')
-      .select('id, title, type, scheduled_at, duration_minutes, notes, profile_id, profiles(id, full_name, username, timezone)')
-      .order('scheduled_at', { ascending: true }),
-    supabase
-      .from('profiles')
-      .select('id, full_name, username, platform_links(platform)')
-      .eq('role', 'client'),
-  ])
+  const { data: clients } = await supabase
+    .from('profiles')
+    .select('id, full_name, username, platform_links(platform)')
+    .eq('role', 'client')
 
   return (
     <div className="p-6 max-w-full mx-auto animate-in h-full flex flex-col">
@@ -33,7 +25,6 @@ export default async function AdminCalendarPage({
         </p>
       </div>
       <AdminCalendarView
-        events={(events ?? []) as any[]}
         clients={(clients ?? []) as any[]}
         initialClientId={sp.client}
       />

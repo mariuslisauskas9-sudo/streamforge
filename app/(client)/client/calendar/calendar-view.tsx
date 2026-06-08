@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { DateSelectArg, EventClickArg } from '@fullcalendar/core'
+import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core'
 import { createClient } from '@/lib/supabase/client'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -21,10 +20,10 @@ import {
 import { eventTypeColors, eventTypeLabels } from '@/lib/utils'
 import { TimeSelect } from '@/components/ui/time-select'
 import toast from 'react-hot-toast'
+import { Loader2 } from 'lucide-react'
 import type { StreamEvent, EventType } from '@/types'
 
 interface Props {
-  events: StreamEvent[]
   profileId: string
 }
 
@@ -48,14 +47,34 @@ const defaultForm: FormState = {
 
 const CLIENT_EVENT_TYPES: EventType[] = ['stream', 'video']
 
-export function ClientCalendarView({ events, profileId }: Props) {
-  const router = useRouter()
+export function ClientCalendarView({ profileId }: Props) {
+  const [events, setEvents] = useState<StreamEvent[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const currentRangeRef = useRef<{ start: string; end: string } | null>(null)
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<ModalMode>('create')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(defaultForm)
   const [loading, setLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  async function fetchEvents(start: string, end: string) {
+    setEventsLoading(true)
+    try {
+      const res = await fetch(`/api/events/client?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setEvents(data)
+      }
+    } finally {
+      setEventsLoading(false)
+    }
+  }
+
+  function handleDatesSet(info: DatesSetArg) {
+    currentRangeRef.current = { start: info.startStr, end: info.endStr }
+    fetchEvents(info.startStr, info.endStr)
+  }
 
   const calEvents = events.map((e) => ({
     id: e.id,
@@ -132,7 +151,9 @@ export function ClientCalendarView({ events, profileId }: Props) {
     } else {
       toast.success(mode === 'create' ? 'Event created' : 'Event updated')
       setOpen(false)
-      router.refresh()
+      if (currentRangeRef.current) {
+        fetchEvents(currentRangeRef.current.start, currentRangeRef.current.end)
+      }
     }
     setLoading(false)
   }
@@ -149,14 +170,22 @@ export function ClientCalendarView({ events, profileId }: Props) {
     } else {
       toast.success('Event deleted')
       setOpen(false)
-      router.refresh()
+      if (currentRangeRef.current) {
+        fetchEvents(currentRangeRef.current.start, currentRangeRef.current.end)
+      }
     }
     setDeleteLoading(false)
   }
 
   return (
     <>
-      <div className="flex-1 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4">
+      <div className="flex-1 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4 relative">
+        {eventsLoading && (
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Loading…
+          </div>
+        )}
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -175,6 +204,7 @@ export function ClientCalendarView({ events, profileId }: Props) {
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
           events={calEvents}
+          datesSet={handleDatesSet}
           select={handleDateSelect}
           eventClick={handleEventClick}
           height="100%"

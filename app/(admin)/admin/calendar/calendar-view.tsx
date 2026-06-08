@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -20,7 +20,8 @@ import { Badge } from '@/components/ui/badge'
 import { TimeSelect } from '@/components/ui/time-select'
 import { createEvent } from '@/app/actions/events'
 import toast from 'react-hot-toast'
-import { Plus, ExternalLink } from 'lucide-react'
+import { Plus, ExternalLink, Loader2 } from 'lucide-react'
+import type { DatesSetArg } from '@fullcalendar/core'
 
 type CalProfile = { id: string; full_name: string | null; username: string | null; timezone: string | null }
 
@@ -43,7 +44,6 @@ interface Client {
 }
 
 interface Props {
-  events: CalEvent[]
   clients: Client[]
   initialClientId?: string
 }
@@ -124,8 +124,10 @@ function parseNotes(notes: string | null): ParsedNotes {
   }
 }
 
-export function AdminCalendarView({ events: initialEvents, clients, initialClientId }: Props) {
-  const [allEvents, setAllEvents] = useState<CalEvent[]>(initialEvents)
+export function AdminCalendarView({ clients, initialClientId }: Props) {
+  const [allEvents, setAllEvents] = useState<CalEvent[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const currentRangeRef = useRef<{ start: string; end: string } | null>(null)
   const [selectedClientId, setSelectedClientId] = useState<string>(initialClientId ?? 'all')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null)
@@ -145,6 +147,24 @@ export function AdminCalendarView({ events: initialEvents, clients, initialClien
     xPostLink: '',
     xAmount: '',
   })
+
+  const fetchEvents = useCallback(async (start: string, end: string) => {
+    setEventsLoading(true)
+    try {
+      const res = await fetch(`/api/events/admin?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAllEvents(data)
+      }
+    } finally {
+      setEventsLoading(false)
+    }
+  }, [])
+
+  function handleDatesSet(info: DatesSetArg) {
+    currentRangeRef.current = { start: info.startStr, end: info.endStr }
+    fetchEvents(info.startStr, info.endStr)
+  }
 
   function setField<K extends keyof EventForm>(key: K, value: EventForm[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -212,11 +232,6 @@ export function AdminCalendarView({ events: initialEvents, clients, initialClien
     }
     setSaving(false)
   }
-
-  useEffect(() => {
-    console.log('[calendar-view] initialClientId:', initialClientId, '→ selectedClientId:', selectedClientId)
-    console.log('[calendar-view] clients:', clients.map((c) => ({ id: c.id, username: c.username })))
-  }, [])
 
   const isXPostsModal = clients.some((c) => c.id === form.profileId && c.username === 'x-posts')
   const canSubmit = form.profileId && form.title.trim() && form.date && form.time
@@ -312,7 +327,13 @@ export function AdminCalendarView({ events: initialEvents, clients, initialClien
         </div>
 
         {/* Calendar */}
-        <div className="flex-1 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4 min-h-0 overflow-hidden">
+        <div className="flex-1 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4 min-h-0 overflow-hidden relative">
+          {eventsLoading && (
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Loading…
+            </div>
+          )}
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
@@ -322,10 +343,9 @@ export function AdminCalendarView({ events: initialEvents, clients, initialClien
               right: 'dayGridMonth,timeGridWeek,timeGridDay',
             }}
             events={calendarEvents}
+            datesSet={handleDatesSet}
             eventClick={(info) => {
               const ev = info.event.extendedProps.event as CalEvent
-              console.log('[eventClick] extendedProps.event:', ev)
-              console.log('[eventClick] scheduled_at:', ev?.scheduled_at)
               setSelectedEvent(ev)
             }}
             height="100%"

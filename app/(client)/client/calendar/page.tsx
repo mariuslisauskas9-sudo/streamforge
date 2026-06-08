@@ -7,12 +7,6 @@ export default async function ClientCalendarPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: events } = await supabase
-    .from('events')
-    .select('*')
-    .eq('profile_id', user.id)
-    .order('scheduled_at', { ascending: true })
-
   return (
     <div className="p-6 h-full flex flex-col animate-in">
       <div className="mb-5">
@@ -23,10 +17,7 @@ export default async function ClientCalendarPage() {
           Manage your upcoming events
         </p>
       </div>
-      <ClientCalendarView
-        events={events ?? []}
-        profileId={user.id}
-      />
+      <ClientCalendarView profileId={user.id} />
     </div>
   )
 }

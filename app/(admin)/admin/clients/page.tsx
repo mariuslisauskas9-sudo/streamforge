@@ -6,7 +6,7 @@ import { XPostsSection } from '@/components/admin/x-posts-section'
 import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/StatusBadge'
 import PlatformBadge from '@/components/PlatformBadge'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { XPost } from '@/app/actions/x-posts'
 
 type ClientRow = {
@@ -43,12 +43,21 @@ const SECTION_TITLE_MAP: Record<string, string> = {
   'x-creators': 'X Creators',
 }
 
+const PAGE_SIZE = 20
+
+function buildPageUrl(page: number, platform?: string) {
+  const params = new URLSearchParams()
+  if (platform) params.set('platform', platform)
+  params.set('page', String(page))
+  return `/admin/clients?${params.toString()}`
+}
+
 export default async function CreatorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ platform?: string }>
+  searchParams: Promise<{ platform?: string; page?: string }>
 }) {
-  const { platform } = await searchParams
+  const { platform, page: pageParam } = await searchParams
   const supabase = await createClient()
   const isXCreators = platform === 'x-creators'
   const sectionTitle = platform ? (SECTION_TITLE_MAP[platform] ?? 'Creators') : 'Creators'
@@ -68,8 +77,6 @@ export default async function CreatorsPage({
     ])
 
     const xPosts = (postsRaw ?? []) as XPost[]
-
-    console.log('[x-posts card] xPostsProfile:', xPostsProfile)
 
     return (
       <div className="p-6 max-w-6xl mx-auto animate-in">
@@ -145,6 +152,17 @@ export default async function CreatorsPage({
     if (!nextEvents[ev.profile_id]) nextEvents[ev.profile_id] = ev
   }
 
+  // Pagination
+  const totalCount = clients.length
+  const currentPage = Math.max(1, Number(pageParam) || 1)
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1
+  const safePage = Math.min(currentPage, totalPages)
+  const sliceStart = (safePage - 1) * PAGE_SIZE
+  const sliceEnd = sliceStart + PAGE_SIZE
+  const paginatedClients = clients.slice(sliceStart, sliceEnd)
+  const showingFrom = totalCount === 0 ? 0 : sliceStart + 1
+  const showingTo = Math.min(sliceEnd, totalCount)
+
   return (
     <div className="p-6 max-w-6xl mx-auto animate-in">
       <div className="flex items-start justify-between mb-7">
@@ -161,10 +179,46 @@ export default async function CreatorsPage({
 
       <CreatorGrid
         key={platform ?? 'all'}
-        initialClients={clients}
+        initialClients={paginatedClients}
         nextEvents={nextEvents}
         platformFilter={platformFilter}
       />
+
+      {totalCount > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-[var(--color-border)]">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Showing {showingFrom}–{showingTo} of {totalCount} creators
+          </p>
+          <div className="flex gap-2">
+            {safePage > 1 ? (
+              <Button asChild variant="secondary" size="sm">
+                <Link href={buildPageUrl(safePage - 1, platform)}>
+                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                  Previous
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" disabled>
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                Previous
+              </Button>
+            )}
+            {safePage < totalPages ? (
+              <Button asChild variant="secondary" size="sm">
+                <Link href={buildPageUrl(safePage + 1, platform)}>
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" disabled>
+                Next
+                <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
